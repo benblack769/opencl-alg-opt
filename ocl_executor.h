@@ -104,6 +104,9 @@ public:
     CLKernel new_clkernel(const char * kern_name,CL_NDRange run_range,CL_NDRange work_range,std::vector<cl_mem> buflist){
         return CLKernel(program,queue,kern_name,run_range,work_range,buflist);
     }
+    void wait_until_exec(){
+        clFinish(queue);
+    }
 
 protected:
     void get_main_device();

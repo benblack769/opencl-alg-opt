@@ -1,4 +1,9 @@
 
+kernel void setarange(global float * data){
+    int i = get_global_id(0);
+    data[i] = 123;
+}
+
 kernel void matmul(global float * A, global float * B, global float * res){
     int i = get_global_id(0);
     int j = get_global_id(1);

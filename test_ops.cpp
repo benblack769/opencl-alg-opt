@@ -8,15 +8,20 @@ using namespace std;
 vector<float> matinput(size_t size){
     vector<float> res(size);
     for(size_t i = 0; i < size; i++){
-        res[i] = rand();
+        res[i] = float(rand())/float(RAND_MAX) - 0.5f;
     }
     return res;
 }
+float abs(float x){
+    return x < 0 ? -x : x;
+}
 bool aprox_same(float x1, float x2){
-    return x1 * 0.999 < x2 &&
-            x1 > x2 * 0.999 &&
+#define abs(x) ((x) < 0 ? -(x) : (x))
+    return abs(x1 * 0.999f) <= abs(x2) &&
+            abs(x1) >= abs(x2 * 0.999f) &&
             x1 <= x2 + 1e-10 &&
             x1 + 1e-10 >= x2;
+#undef abs
 }
 bool aprox_same(float * d1, float * d2, size_t size){
     for(size_t i = 0; i < size; i++){

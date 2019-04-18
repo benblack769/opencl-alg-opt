@@ -15,6 +15,7 @@ add_executable(cl_prac
     main.cpp
     test_ops.cpp
     cpu_ops.cpp
+    profiler.cpp
        ocl_executor.cpp
 )
 target_link_libraries(cl_prac PRIVATE

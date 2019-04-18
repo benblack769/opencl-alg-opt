@@ -1,14 +1,34 @@
 #include <iostream>
+#include <utility>
 #include "ocl_executor.h"
 #include "test_ops.h"
+#include "profiler.h"
 
 using namespace std;
 
+std::string format_defs(vector<string> unnamed_defs, vector<pair<string, string>> named_defs){
+    string defstr = "";
+    for(string s : unnamed_defs){
+        defstr += " -D " + s;
+        defstr += s;
+    }
+    for(pair<string, string> p : named_defs){
+        defstr += " -D " + p.first + "=" + p.second;
+    }
+    return defstr;
+}
+
 void test_matmul_gpu_impl(){
-    int isize = 8;
-    int jsize = 16;
-    int ksize = 32;
-    OpenCLExecutor executor("mat_mul.cl","-D ISIZE=8 -D JSIZE=16 -D KSIZE=32");
+    int isize = 512;
+    int jsize = 512;
+    int ksize = 512;
+    string format_str = format_defs({},{
+        make_pair("ISIZE",to_string(isize)),
+        make_pair("JSIZE",to_string(jsize)),
+        make_pair("KSIZE",to_string(ksize)),
+    });
+    cout << format_str;
+    OpenCLExecutor executor("mat_mul.cl",format_str);
     CLBuffer Abuf = executor.new_clbuffer(isize*ksize,sizeof(float));
     CLBuffer Bbuf = executor.new_clbuffer(jsize*ksize,sizeof(float));
     CLBuffer resbuf = executor.new_clbuffer(isize*jsize,sizeof(float));
@@ -18,6 +38,12 @@ void test_matmul_gpu_impl(){
                 CL_NDRange(),
                 {Abuf.k_arg(),Bbuf.k_arg(),resbuf.k_arg()});
 
+    CLKernel set_kern = executor.new_clkernel(
+                "setarange",
+                CL_NDRange(isize*ksize),
+                CL_NDRange(),
+                {Abuf.k_arg()});
+
     auto gpu_func = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
         Abuf.write_buffer(Adata);
         Bbuf.write_buffer(Bdata);
@@ -25,6 +51,17 @@ void test_matmul_gpu_impl(){
         resbuf.read_buffer(resdata);
     };
     test_matmul(gpu_func,isize,jsize,ksize);
+    int x = 0;
+    auto mat_run_func = [&](){
+        set_kern.run();
+        matmul_kern.run();
+        //x++;
+        //if(x % 5 == 0){
+            executor.wait_until_exec();
+        //}
+    };
+    double time = time_func(mat_run_func,1000);
+    cout << "average time: " << time << "\n";
 }
 void test_test_impl(){
     int size = 10;
