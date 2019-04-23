@@ -17,10 +17,10 @@ float abs(float x){
 }
 bool aprox_same(float x1, float x2){
 #define abs(x) ((x) < 0 ? -(x) : (x))
-    return abs(x1 * 0.999f) <= abs(x2) &&
-            abs(x1) >= abs(x2 * 0.999f) &&
-            x1 <= x2 + 1e-10 &&
-            x1 + 1e-10 >= x2;
+    return (abs(x1 * 0.95f) <= abs(x2) &&
+                abs(x1) >= abs(x2 * 0.95f)) ||
+            (x1 <= x2 + 1e-10f &&
+                x1 + 1e-10f >= x2);
 #undef abs
 }
 bool aprox_same(float * d1, float * d2, size_t size){
@@ -49,6 +49,7 @@ void test_matmul(function<void(VFloat&,VFloat&,VFloat&)> matmul,int isize, int j
     vector<float> i2 = matinput(jsize*ksize);
     vector<float> res1(isize*jsize);
     vector<float> res2(isize*jsize);
+    cout << "matmul test running:" << endl;
     cpu_ops::matmul(i1.data(),i2.data(),res1.data(),isize,jsize,ksize);
     matmul(i1,i2,res2);
     if(!aprox_same(res1.data(),res2.data(),res1.size())){
@@ -59,5 +60,23 @@ void test_matmul(function<void(VFloat&,VFloat&,VFloat&)> matmul,int isize, int j
     }
     else{
         cout << "matmul test passed\n";
+    }
+}
+
+void test_transpose(std::function<void(VFloat&,VFloat&)> transpose,int isize, int jsize){
+    vector<float> A = matinput(isize*jsize);
+    vector<float> res1(isize*jsize);
+    vector<float> res2(isize*jsize);
+    cout << "transpose test running:" << endl;
+    cpu_ops::transpose(A.data(),res1.data(),isize,jsize);
+    transpose(A,res2);
+    if(!aprox_same(res1.data(),res2.data(),res1.size())){
+        cout << "cpu impl:\n";
+        print_mat(res1,jsize);
+        cout << "test impl:\n";
+        print_mat(res2,jsize);
+    }
+    else{
+        cout << "transpose test passed\n";
     }
 }

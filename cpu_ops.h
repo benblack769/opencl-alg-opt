@@ -8,5 +8,11 @@ namespace cpu_ops {
     res: (isize,jsize)
 */
 void matmul(float * A, float * B, float * res, int isize, int jsize, int ksize);
+void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ksize);
 
+/*
+    A : (isize,jsize)
+    res: (jsize,isize)
+*/
+void transpose(float * A, float * res, int isize, int jsize);
 }
