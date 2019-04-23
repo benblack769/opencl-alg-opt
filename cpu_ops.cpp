@@ -14,9 +14,17 @@ void matmul(float * A, float * B, float * res, int isize, int jsize, int ksize){
     }
 }
 void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ksize){
-    constexpr int igroup = 4;
-    constexpr int jgroup = 8;
-    constexpr int kgroup = 16;
+    constexpr int igs = 4;
+    constexpr int jgs = 4;
+    constexpr int kgs = 2;
+
+    constexpr int ithread = 4;
+    constexpr int jthread = 4;
+    constexpr int kthread = 8;
+
+    constexpr int igroup = ithread * igs;
+    constexpr int jgroup = jthread * jgs;
+    constexpr int kgroup = kthread * kgs;
 
     for(int ib = 0; ib < isize; ib += igroup){
         for(int jb = 0; jb < jsize; jb += jgroup){
@@ -28,24 +36,44 @@ void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ks
                 float A_block[igroup][kgroup];
                 float B_block[jgroup][kgroup];
 
-                for(int i = 0; i < igroup; i++){
-                    for(int k = 0; k < kgroup; k++){
-                        A_block[i][k] = A[(ib+i)*ksize + (kb + k)];
+                for(int ig = 0; ig < igs; ig++){
+                    for(int kg = 0; kg < kgs; kg++){
+                        for(int it = 0; it < ithread; it++){
+                            for(int kt = 0; kt < kthread; kt++){
+                                int i = it + ig * ithread;
+                                int k = kt + kg * kthread;
+                                A_block[i][k] = A[(ib+i)*ksize + (kb + k)];
+                            }
+                        }
                     }
                 }
-                for(int k = 0; k < kgroup; k++){
-                    for(int j = 0; j < jgroup; j++){
-                        B_block[j][k] = B[(kb+k)*jsize + (jb + j)];
+                for(int jg = 0; jg < jgs; jg++){
+                    for(int kg = 0; kg < kgs; kg++){
+                        for(int jt = 0; jt < jthread; jt++){
+                            for(int kt = 0; kt < kthread; kt++){
+                                int j = jt + jg * jthread;
+                                int k = kt + kg * kthread;
+                                B_block[j][k] = B[(kb+k)*jsize + (jb + j)];
+                            }
+                        }
                     }
                 }
 
-                for(int i = 0; i < igroup; i++){
-                    for(int j = 0; j < jgroup; j++){
-                        float sum = 0;
-                        for(int k = 0; k < kgroup; k++){
-                            sum += A_block[i][k] * B_block[j][k];
+
+                for(int ig = 0; ig < igs; ig++){
+                    for(int jg = 0; jg < jgs; jg++){
+                        for(int it = 0; it < ithread; it++){
+                            for(int jt = 0; jt < jthread; jt++){
+                                int i = it + ig * ithread;
+                                int j = jt + jg * jthread;
+
+                                float sum = 0;
+                                for(int k = 0; k < kgroup; k++){
+                                    sum += A_block[i][k] * B_block[j][k];
+                                }
+                                block_sum[i][j] += sum;
+                            }
                         }
-                        block_sum[i][j] += sum;
                     }
                 }
             }
@@ -55,7 +83,6 @@ void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ks
                     res[(ib+i)*jsize + (jb+j)] = block_sum[i][j];
                 }
             }
-
         }
     }
 }

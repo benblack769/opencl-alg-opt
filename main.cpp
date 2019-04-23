@@ -54,12 +54,12 @@ void test_transpose_gpu_impl(){
 }
 
 void test_matmul_gpu_impl(){
-    int isize = 32;
-    int jsize = 32;
-    int ksize = 32;
-    int igroup = 4;
-    int jgroup = 4;
-    int kgroup = 8;
+    int isize = 64;
+    int jsize = 128;
+    int ksize = 256;
+    int igroup = 16;
+    int jgroup = 8;
+    int kgroup = 4;
     string format_str = format_defs({},{
         make_pair("ISIZE",to_string(isize)),
         make_pair("JSIZE",to_string(jsize)),
