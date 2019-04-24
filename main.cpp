@@ -54,28 +54,19 @@ void test_transpose_gpu_impl(){
 }
 
 void test_matmul_gpu_impl(){
-    int isize = 512;
-    int jsize = 512;
-    int ksize = 512;
-
-    int igs = 4;
-    int jgs = 4;
-    int kgs = 1;
-
-    int ithread = 4;
-    int jthread = 4;
-    int kthread = 16;
-
+    int isize = 64;
+    int jsize = 128;
+    int ksize = 256;
+    int igroup = 16;
+    int jgroup = 8;
+    int kgroup = 4;
     string format_str = format_defs({},{
         make_pair("ISIZE",to_string(isize)),
         make_pair("JSIZE",to_string(jsize)),
         make_pair("KSIZE",to_string(ksize)),
-        make_pair("IGS",to_string(igs)),
-        make_pair("JGS",to_string(jgs)),
-        make_pair("KGS",to_string(kgs)),
-        make_pair("ITHREAD",to_string(ithread)),
-        make_pair("JTHREAD",to_string(jthread)),
-        make_pair("KTHREAD",to_string(kthread)),
+        make_pair("IGROUP",to_string(igroup)),
+        make_pair("JGROUP",to_string(jgroup)),
+        make_pair("KGROUP",to_string(kgroup)),
     });
     cout << format_str;
     OpenCLExecutor executor("mat_mul.cl",format_str);
@@ -84,8 +75,8 @@ void test_matmul_gpu_impl(){
     CLBuffer resbuf = executor.new_clbuffer(isize*jsize,sizeof(float));
     CLKernel matmul_kern = executor.new_clkernel(
                 "matmul",
-                CL_NDRange(isize/ithread,jsize/jthread),
-                CL_NDRange(igs,jgs),
+                CL_NDRange(isize,jsize),
+                CL_NDRange(igroup,jgroup),
                 {Abuf.k_arg(),Bbuf.k_arg(),resbuf.k_arg()});
 
     auto gpu_func = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
@@ -99,7 +90,7 @@ void test_matmul_gpu_impl(){
         matmul_kern.run();
         executor.wait_until_exec();
     };
-    double time = time_func(mat_run_func,100);
+    double time = time_func(mat_run_func,1000);
     cout << "average time: " << time << "\n";
 }
 void test_cpu_cubed(){
