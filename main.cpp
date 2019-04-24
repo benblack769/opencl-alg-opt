@@ -53,6 +53,35 @@ void test_transpose_gpu_impl(){
     cout << "average time: " << time << "\n";
 }
 
+void test_many_4x4_gpu_impl(){
+
+    int NUM_4x4 = 1000000;
+    int SIZE_4x4 = 16;
+    OpenCLExecutor executor("multiply_many_4x4.cl","");
+    CLBuffer Abuf = executor.new_clbuffer(SIZE_4x4*NUM_4x4,sizeof(float));
+    CLBuffer Bbuf = executor.new_clbuffer(SIZE_4x4*NUM_4x4,sizeof(float));
+    CLBuffer resbuf = executor.new_clbuffer(SIZE_4x4*NUM_4x4,sizeof(float));
+    CLKernel matmul_kern = executor.new_clkernel(
+                "matrix_mul",
+                CL_NDRange(NUM_4x4),
+                CL_NDRange(),
+                {Abuf.k_arg(),Bbuf.k_arg(),resbuf.k_arg()});
+
+    VFloat Adata = rand_input(SIZE_4x4*NUM_4x4);
+    VFloat Bdata = rand_input(SIZE_4x4*NUM_4x4);
+    VFloat resdata = rand_input(SIZE_4x4*NUM_4x4);
+    auto mat_run_func = [&](){
+       // Abuf.write_buffer(Adata);
+        //Bbuf.write_buffer(Bdata);
+        //matmul_kern.run();
+        //resbuf.read_buffer(resdata);
+        //executor.wait_until_exec();
+        cpu_ops::many_4x4(Adata.data(),Bdata.data(),resdata.data(),NUM_4x4);
+    };
+    cout << "finished data generation" << endl;
+    double time = time_func(mat_run_func,100);
+    cout << "average time: " << time << "\n";
+}
 void test_matmul_gpu_impl(){
     int isize = 64;
     int jsize = 128;
@@ -138,7 +167,7 @@ void test_test_impl(){
 }
 int main(){
     //test_test_impl();
-    test_matmul_gpu_impl();
+    test_many_4x4_gpu_impl();
     //test_cpu_cubed();
     //test_transpose_gpu_impl();
 }

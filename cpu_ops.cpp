@@ -32,6 +32,9 @@ void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ks
             float block_sum[igroup][jgroup] = {0};
 
             for(int kb = 0; kb < ksize; kb += kgroup){
+                for(int kt = 0; kt < kthread; kt++){
+
+                }
 
                 float A_block[igroup][kgroup];
                 float B_block[jgroup][kgroup];
@@ -95,5 +98,26 @@ void transpose(float * A, float * res, int isize, int jsize){
         }
     }
 }
+
+
+
+void many_4x4(float * A, float * B, float * res, int num){
+    constexpr int isize = 4;
+    constexpr int jsize = 4;
+    constexpr int ksize = 4;
+    constexpr int matsize = 16;
+    for(int x = 0; x < num; x++){
+        for(int i = 0; i < isize; i++){
+            for(int j = 0; j < jsize; j++){
+                float sum = 0;
+                for(int k = 0; k < ksize; k++){
+                     sum += A[i*ksize+k + x*matsize] * B[k*jsize+j + x*matsize];
+                }
+                res[i*jsize+j + x*matsize] = sum;
+            }
+        }
+    }
+}
+
 
 }
