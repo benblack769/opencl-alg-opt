@@ -9,53 +9,48 @@ kernel void matmul(global float * A, global float * B, global float * res){
     res[i*JSIZE+j] = sum;
 }
 #else
-kernel void matmul(global float * A, global float * B, global float * res){
+
+#define IGROUP (IGS * ITHREAD)
+#define JGROUP (JGS * JTHREAD)
+#define KGROUP (KGS * KTHREAD)
+
+#define VSIZE 4
+
+kernel void matmul(global float * A, global float * B, global float * res_mat){
     int ib = get_group_id(0) * IGROUP;
     int jb = get_group_id(1) * JGROUP;
 
-    int i = get_local_id(0);
-    int j = get_local_id(1);
+    int it = get_local_id(0) * ITHREAD;
+    int jt = get_local_id(1) * JTHREAD;
+    int kt = 0;//get_local_id(2) * KTHREAD;
 
-    float sum = 0;
+    //local float block_sum[IGROUP][JGROUP];
 
-    for(int kb = 0; kb < KSIZE; kb += KGROUP){
-        local float A_block[IGROUP][KGROUP];
-        local float B_block[JGROUP][KGROUP];
+    float4 res[VSIZE];
+    for(int x = 0; x < VSIZE; x++){
+        res[x] = 0;
+    }
 
-#if (KGROUP >= IGROUP)
-        {
-        int ISPLITS = KGROUP / IGROUP;
-        for(int k = i * ISPLITS; k < (i+1) * ISPLITS; k++){
-            B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
-        }
-        }
-#else
-        if(i < KGROUP){
-            int k = i;
-            B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
-        }
-#endif
-
-#if (KGROUP >= JGROUP)
-        {
-        int JSPLITS = KGROUP / JGROUP;
-        for(int k = j * JSPLITS; k < (j+1) * JSPLITS; k++){
-            A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
-        }
-        }
-#else
-        if(j < KGROUP){
-            int k = j;
-            A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
-        }
-#endif
-        barrier(CLK_LOCAL_MEM_FENCE);
-
-        for(int k = 0; k < KGROUP; k++){
-            sum += A_block[i][k] * B_block[j][k];
+    for(int kg = 0; kg < KSIZE; kg += KGROUP){
+        for(int ko = 0; ko < KTHREAD; ko++){
+            int k = ko + kt + kg;
+            int j = jb + jt;
+            float4 jvec = vload4((k * JSIZE + j)/VSIZE, B);
+            for(int jo = 0; jo < JTHREAD; jo++){
+                int i = jo + it + ib;
+                float ival = A[i*KSIZE+k];
+                res[jo] += jvec * ival;
+            }
         }
     }
-    res[(ib+i)*JSIZE + (jb+j)] = sum;
+    for(int io = 0; io < ITHREAD; io++){
+        int i = io + it + ib;
+        int j = jb + jt;
+        int idx = (i*JSIZE + j) / VSIZE;
+        float4 cursum = res[io];
+
+        vstore4(cursum,idx,res_mat);
+    }
 }
 
 #endif

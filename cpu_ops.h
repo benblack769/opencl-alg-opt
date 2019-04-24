@@ -9,6 +9,7 @@ namespace cpu_ops {
 */
 void matmul(float * A, float * B, float * res, int isize, int jsize, int ksize);
 void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ksize);
+void matmulnewcubed(float * A, float * B, float * res, int isize, int jsize, int ksize);
 
 /*
     A : (isize,jsize)

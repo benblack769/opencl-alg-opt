@@ -54,19 +54,25 @@ void test_transpose_gpu_impl(){
 }
 
 void test_matmul_gpu_impl(){
-    int isize = 64;
-    int jsize = 128;
-    int ksize = 256;
-    int igroup = 16;
-    int jgroup = 8;
-    int kgroup = 4;
+    int isize = 512;
+    int jsize = 512;
+    int ksize = 512;
+    int igs = 4;
+    int jgs = 4;
+    int kgs = 1;
+    int ithread = 4;
+    int jthread = 4;
+    int kthread = 8;
     string format_str = format_defs({},{
         make_pair("ISIZE",to_string(isize)),
         make_pair("JSIZE",to_string(jsize)),
         make_pair("KSIZE",to_string(ksize)),
-        make_pair("IGROUP",to_string(igroup)),
-        make_pair("JGROUP",to_string(jgroup)),
-        make_pair("KGROUP",to_string(kgroup)),
+        make_pair("IGS",to_string(igs)),
+        make_pair("JGS",to_string(jgs)),
+        make_pair("KGS",to_string(kgs)),
+        make_pair("ITHREAD",to_string(ithread)),
+        make_pair("JTHREAD",to_string(jthread)),
+        make_pair("KTHREAD",to_string(kthread)),
     });
     cout << format_str;
     OpenCLExecutor executor("mat_mul.cl",format_str);
@@ -75,8 +81,8 @@ void test_matmul_gpu_impl(){
     CLBuffer resbuf = executor.new_clbuffer(isize*jsize,sizeof(float));
     CLKernel matmul_kern = executor.new_clkernel(
                 "matmul",
-                CL_NDRange(isize,jsize),
-                CL_NDRange(igroup,jgroup),
+                CL_NDRange(isize/ithread,jsize/jthread),
+                CL_NDRange(igs,jgs),
                 {Abuf.k_arg(),Bbuf.k_arg(),resbuf.k_arg()});
 
     auto gpu_func = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
@@ -94,12 +100,12 @@ void test_matmul_gpu_impl(){
     cout << "average time: " << time << "\n";
 }
 void test_cpu_cubed(){
-    int isize = 512;
+    int isize = 128;
     int jsize = 256;
     int ksize = 128;
 
     auto cubed_matmul = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
-        cpu_ops::matmulcubed(Adata.data(),Bdata.data(),resdata.data(),isize,jsize,ksize);
+        cpu_ops::matmulnewcubed(Adata.data(),Bdata.data(),resdata.data(),isize,jsize,ksize);
     };
     test_matmul(cubed_matmul,isize,jsize,ksize);
 
@@ -107,9 +113,10 @@ void test_cpu_cubed(){
     VFloat B = rand_input(jsize*ksize);
     VFloat res = rand_input(isize*jsize);
     auto mat_run_func = [&](){
-        cpu_ops::matmulcubed(A.data(),B.data(),res.data(),isize,jsize,ksize);
+        cpu_ops::matmulnewcubed(A.data(),B.data(),res.data(),isize,jsize,ksize);
     };
-    double time = time_func(mat_run_func,10);
+
+    double time = time_func(mat_run_func,5);
     cout << "average cubed time: " << time << "\n";
     auto mat_run_func2 = [&](){
         cpu_ops::matmul(A.data(),B.data(),res.data(),isize,jsize,ksize);
