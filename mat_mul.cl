@@ -9,53 +9,88 @@ kernel void matmul(global float * A, global float * B, global float * res){
     res[i*JSIZE+j] = sum;
 }
 #else
+
+#define IGROUP (ITHREAD * IGS)
+#define JGROUP (JTHREAD * JGS)
+#define KGROUP (KTHREAD * KGS)
+
 kernel void matmul(global float * A, global float * B, global float * res){
     int ib = get_group_id(0) * IGROUP;
     int jb = get_group_id(1) * JGROUP;
 
-    int i = get_local_id(0);
-    int j = get_local_id(1);
+    int ig = get_local_id(0);
+    int jg = get_local_id(1);
 
-    float sum = 0;
+    float sums[ITHREAD][JTHREAD] = {0};
 
     for(int kb = 0; kb < KSIZE; kb += KGROUP){
         local float A_block[IGROUP][KGROUP];
         local float B_block[JGROUP][KGROUP];
 
-#if (KGROUP >= IGROUP)
+#if (KGROUP >= IGS)
         {
-        int ISPLITS = KGROUP / IGROUP;
+        int i = ig;
+        int ISPLITS = KGROUP / IGS;
         for(int k = i * ISPLITS; k < (i+1) * ISPLITS; k++){
-            B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
+            for(int jt = 0; jt < JTHREAD; jt++){
+                int j = jt + jg * JTHREAD;
+                B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
+            }
         }
         }
 #else
-        if(i < KGROUP){
-            int k = i;
-            B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
+        if(ig < KGROUP){
+            int k = ig;
+            for(int jt = 0; jt < JTHREAD; jt++){
+                int j = jt + jg * JTHREAD;
+                B_block[j][k] = B[(kb+k)*JSIZE + (jb + j)];
+            }
         }
 #endif
 
-#if (KGROUP >= JGROUP)
+#if (KGROUP >= JGS)
         {
-        int JSPLITS = KGROUP / JGROUP;
+        int j = jg;
+        int JSPLITS = KGROUP / JGS;
         for(int k = j * JSPLITS; k < (j+1) * JSPLITS; k++){
-            A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
+            for(int it = 0; it < ITHREAD; it++){
+                int i = it + ig * ITHREAD;
+                A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
+            }
         }
         }
 #else
-        if(j < KGROUP){
-            int k = j;
-            A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
+        if(jg < KGROUP){
+            int k = jg;
+            for(int it = 0; it < ITHREAD; it++){
+                int i = it + ig * ITHREAD;
+                A_block[i][k] =  A[(ib+i)*KSIZE + (kb + k)];
+            }
         }
 #endif
         barrier(CLK_LOCAL_MEM_FENCE);
 
-        for(int k = 0; k < KGROUP; k++){
-            sum += A_block[i][k] * B_block[j][k];
+        for(int it = 0; it < ITHREAD; it++){
+            for(int jt = 0; jt < JTHREAD; jt++){
+                int i = it + ig * ITHREAD;
+                int j = jt + jg * JTHREAD;
+
+                float sum = 0;
+                for(int k = 0; k < KGROUP; k++){
+                    sum += A_block[i][k] * B_block[j][k];
+                }
+                sums[it][jt] += sum;
+            }
         }
     }
-    res[(ib+i)*JSIZE + (jb+j)] = sum;
+    for(int it = 0; it < ITHREAD; it++){
+        for(int jt = 0; jt < JTHREAD; jt++){
+            int i = it + ig * ITHREAD;
+            int j = jt + jg * JTHREAD;
+
+            res[(ib+i)*JSIZE + (jb+j)] = sums[it][jt];
+        }
+    }
 }
 
 #endif

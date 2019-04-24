@@ -16,7 +16,7 @@ void matmul(float * A, float * B, float * res, int isize, int jsize, int ksize){
 void matmulcubed(float * A, float * B, float * res, int isize, int jsize, int ksize){
     constexpr int igs = 4;
     constexpr int jgs = 4;
-    constexpr int kgs = 2;
+    constexpr int kgs = 1;
 
     constexpr int ithread = 4;
     constexpr int jthread = 4;
