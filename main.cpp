@@ -96,13 +96,13 @@ void test_matmul_gpu_impl(){
         matmul_kern.run();
         executor.wait_until_exec();
     };
-    double time = time_func(mat_run_func,1000);
+    double time = time_func(mat_run_func,10);
     cout << "average time: " << time << "\n";
 }
 void test_cpu_cubed(){
-    int isize = 128;
-    int jsize = 256;
-    int ksize = 128;
+    int isize = 512;
+    int jsize = 512;
+    int ksize = 512;
 
     auto cubed_matmul = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
         cpu_ops::matmulnewcubed(Adata.data(),Bdata.data(),resdata.data(),isize,jsize,ksize);

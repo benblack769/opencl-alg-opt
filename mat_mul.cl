@@ -16,6 +16,18 @@ kernel void matmul(global float * A, global float * B, global float * res){
 
 #define VSIZE 4
 
+#if (JGS <= KTHREAD)
+#define JSPLITK (KTHREAD/JGS)
+#else
+#define JSPLITK 1
+#endif
+
+#if (IGS <= KTHREAD)
+#define ISPLITK (KTHREAD/IGS)
+#else
+#define ISPLITK 1
+#endif
+
 kernel void matmul(global float * A, global float * B, global float * res_mat){
     int ib = get_group_id(0) * IGROUP;
     int jb = get_group_id(1) * JGROUP;
@@ -33,26 +45,39 @@ kernel void matmul(global float * A, global float * B, global float * res_mat){
 
     for(int kg = 0; kg < KSIZE; kg += KGROUP){
 
-        private float ABuf[KTHREAD][ITHREAD];
-        for(int io = 0; io < ITHREAD; io++){
-            int i = io + it + ib;
-            for(int ko = 0; ko < KTHREAD; ko += VSIZE){
-                int k = ko + kt + kg;
-                //float4 data = vload4((i * KSIZE + k)/VSIZE, A);
-                //float * darr = (float *)(&data);
-                for(int x = 0; x < VSIZE; x++){
-                    ABuf[ko+x][io] = A[i*KSIZE+k+x];//darr[x];
+        local float Abuf[KTHREAD*IGROUP];
+        local float Bbuf[KTHREAD*JGROUP];
+
+        int jn = get_local_id(1);
+        if(jn < KTHREAD){
+            for(int ko = jn*JSPLITK; ko < ((jn+1)*JSPLITK); ko++){
+                for(int io = 0; io < ITHREAD; io++){
+                    int i = io + it + ib;
+                    int k = ko + kt + kg;
+                    Abuf[(ko)*IGROUP + (io+it)] = A[i*KSIZE+k];
                 }
             }
         }
+        int in = get_local_id(0);
+        if(in < KTHREAD){
+            for(int ko = in*ISPLITK; ko < ((in+1)*ISPLITK); ko++){
+                for(int jo = 0; jo < JTHREAD; jo++){
+                    int k = ko + kt + kg;
+                    int j = jo + jt + jb;
+                    Bbuf[(ko)*JGROUP + (jo+jt)] = B[k*JSIZE+j];
+                }
+            }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         for(int ko = 0; ko < KTHREAD; ko++){
             int k = ko + kt + kg;
             int j = jb + jt;
-            float4 jvec = vload4((k * JSIZE + j)/VSIZE, B);
+            float4 jvec = vload4((ko*JGROUP + jt)/VSIZE, Bbuf);
             for(int jo = 0; jo < JTHREAD; jo++){
                 int i = jo + it + ib;
-                float ival = ABuf[ko][jo];//A[i*KSIZE+k];
+                int io = jo;
+                float ival = Abuf[ko*IGROUP+it+io];//A[i*KSIZE+k];
                 res[jo] += jvec * ival;
             }
         }
