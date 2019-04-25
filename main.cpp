@@ -20,9 +20,9 @@ std::string format_defs(vector<string> unnamed_defs, vector<pair<string, string>
 }
 void test_transpose_gpu_impl(){
     int isize = 512;
-    int jsize = 1024;
-    int asize = 4;
-    int bsize = 8;
+    int jsize = 512;
+    int asize = 2;
+    int bsize = 2;
     string format_str = format_defs({},{
         make_pair("ISIZE",to_string(isize)),
         make_pair("JSIZE",to_string(jsize)),
@@ -54,16 +54,16 @@ void test_transpose_gpu_impl(){
 }
 
 void test_matmul_gpu_impl(){
-    int isize = 512;
-    int jsize = 512;
-    int ksize = 512;
+    int isize = 1024;
+    int jsize = 1024;
+    int ksize = 1024;
     int igs = 4;
     int jgs = 8;
     int kgs = 1;
     int ithread = 4;
     int jthread = 4;
     int kthread = 8;
-    string format_str = format_defs({},{
+    string format_str = format_defs({"USELOCALMEM"},{
         make_pair("ISIZE",to_string(isize)),
         make_pair("JSIZE",to_string(jsize)),
         make_pair("KSIZE",to_string(ksize)),
@@ -105,7 +105,7 @@ void test_cpu_cubed(){
     int ksize = 512;
 
     auto cubed_matmul = [&](VFloat & Adata, VFloat & Bdata, VFloat & resdata){
-        cpu_ops::matmulnewcubed(Adata.data(),Bdata.data(),resdata.data(),isize,jsize,ksize);
+        cpu_ops::matmulcubed(Adata.data(),Bdata.data(),resdata.data(),isize,jsize,ksize);
     };
     test_matmul(cubed_matmul,isize,jsize,ksize);
 
@@ -113,7 +113,7 @@ void test_cpu_cubed(){
     VFloat B = rand_input(jsize*ksize);
     VFloat res = rand_input(isize*jsize);
     auto mat_run_func = [&](){
-        cpu_ops::matmulnewcubed(A.data(),B.data(),res.data(),isize,jsize,ksize);
+        cpu_ops::matmulcubed(A.data(),B.data(),res.data(),isize,jsize,ksize);
     };
 
     double time = time_func(mat_run_func,5);
@@ -121,8 +121,8 @@ void test_cpu_cubed(){
     auto mat_run_func2 = [&](){
         cpu_ops::matmul(A.data(),B.data(),res.data(),isize,jsize,ksize);
     };
-    double time2 = time_func(mat_run_func2,10);
-    cout << "average time: " << time2 << "\n";
+    //double time2 = time_func(mat_run_func2,10);
+    //cout << "average time: " << time2 << "\n";
 }
 void test_test_impl(){
     int size = 10;

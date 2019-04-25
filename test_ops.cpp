@@ -17,10 +17,10 @@ float abs(float x){
 }
 bool aprox_same(float x1, float x2){
 #define abs(x) ((x) < 0 ? -(x) : (x))
-    return (abs(x1 * 0.95f) <= abs(x2) &&
-                abs(x1) >= abs(x2 * 0.95f)) ||
-            (x1 <= x2 + 1e-10f &&
-                x1 + 1e-10f >= x2);
+    return (abs(x1 * 0.98f) <= abs(x2) &&
+                abs(x1) >= abs(x2 * 0.98f)) ||
+            (x1 <= x2 + 1e-5f &&
+                x1 + 1e-5f >= x2);
 #undef abs
 }
 bool aprox_same(float * d1, float * d2, size_t size){

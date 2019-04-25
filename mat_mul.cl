@@ -45,6 +45,7 @@ kernel void matmul(global float * A, global float * B, global float * res_mat){
 
     for(int kg = 0; kg < KSIZE; kg += KGROUP){
 
+#ifdef USELOCALMEM
         local float Abuf[KTHREAD*IGROUP];
         local float Bbuf[KTHREAD*JGROUP];
 
@@ -69,15 +70,24 @@ kernel void matmul(global float * A, global float * B, global float * res_mat){
             }
         }
         barrier(CLK_LOCAL_MEM_FENCE);
+#endif
 
         for(int ko = 0; ko < KTHREAD; ko++){
             int k = ko + kt + kg;
             int j = jb + jt;
+#ifdef USELOCALMEM
             float4 jvec = vload4((ko*JGROUP + jt)/VSIZE, Bbuf);
+#else
+            float4 jvec = vload4((k*JSIZE + j)/VSIZE, B);
+#endif
             for(int jo = 0; jo < JTHREAD; jo++){
-                int i = jo + it + ib;
                 int io = jo;
+                int i = io + it + ib;
+#ifdef USELOCALMEM
                 float ival = Abuf[ko*IGROUP+it+io];//A[i*KSIZE+k];
+#else
+                float ival = A[i*KSIZE+k];
+#endif
                 res[jo] += jvec * ival;
             }
         }

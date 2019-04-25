@@ -203,10 +203,11 @@ void OpenCLExecutor::get_main_device(){
     for (cl_uint i = 0; i < platformIdCount; ++i) {
         std::cout << "\t (" << (i+1) << ") : " << GetPlatformName (platformIds [i]) << std::endl;
     }
+    cl_platform_id platformId = platformIds [0];
 
     // http://www.khronos.org/registry/cl/sdk/1.1/docs/man/xhtml/clGetDeviceIDs.html
     cl_uint deviceIdCount = 0;
-    clGetDeviceIDs (platformIds [0], CL_DEVICE_TYPE_ALL, 0, nullptr,
+    clGetDeviceIDs (platformId, CL_DEVICE_TYPE_ALL, 0, nullptr,
         &deviceIdCount);
 
     if (deviceIdCount == 0) {
@@ -217,18 +218,19 @@ void OpenCLExecutor::get_main_device(){
     }
 
     std::vector<cl_device_id> deviceIds (deviceIdCount);
-    clGetDeviceIDs (platformIds [0], CL_DEVICE_TYPE_ALL, deviceIdCount,
+    clGetDeviceIDs (platformId, CL_DEVICE_TYPE_ALL, deviceIdCount,
         deviceIds.data (), nullptr);
 
     for (cl_uint i = 0; i < deviceIdCount; ++i) {
         std::cout << "\t (" << (i+1) << ") : " << GetDeviceName (deviceIds [i]) << std::endl;
     }
+    cl_device_id deviceId = deviceIds [0];
 
-    std::cout << "Using platform: "<< GetPlatformName (platformIds [0])<<"\n";
-    std::cout << "Using device: "<< GetDeviceName (deviceIds [0])<<"\n";
+    std::cout << "Using platform: "<< GetPlatformName (platformId)<<"\n";
+    std::cout << "Using device: "<< GetDeviceName (deviceId)<<"\n";
 
-    this->platform = platformIds [0];
-    this->device = deviceIds[0];
+    this->platform = platformId;
+    this->device = deviceId;
 }
 void OpenCLExecutor::create_context(){
     // http://www.khronos.org/registry/cl/sdk/1.1/docs/man/xhtml/clCreateContext.html
