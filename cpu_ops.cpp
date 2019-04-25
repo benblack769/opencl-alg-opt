@@ -39,19 +39,21 @@ void matmulnewcubed(float * A, float * B, float * res_mat, int ISIZE, int JSIZE,
                     }
 
                     for(int kg = 0; kg < KSIZE; kg += KGROUP){
-                        /*float ABuf[ITHREAD][KTHREAD];
+                        float ABuf[ITHREAD][KTHREAD];
                         for(int io = 0; io < ITHREAD; io++){
                             int i = io + it + ib;
                             for(int ko = 0; ko < KTHREAD; ko += VSIZE){
                                 int k = ko + kt + kg;
-                                float4 data(&A[i * KSIZE + k]);
-                                float darr[4];
-                                data.store(darr);
+                                //float4 data(&A[i * KSIZE + k]);
+                                float darr[VSIZE];
                                 for(int x = 0; x < VSIZE; x++){
-                                    ABuf[i][k+x] = darr[x];
+                                    darr[x] = A[(i*KSIZE + k) + x];
+                                }
+                                for(int x = 0; x < VSIZE; x++){
+                                    ABuf[io][ko+x] = darr[x];
                                 }
                             }
-                        }*/
+                        }
 
                         for(int ko = 0; ko < KTHREAD; ko++){
                             int k = ko + kt + kg;
@@ -60,8 +62,9 @@ void matmulnewcubed(float * A, float * B, float * res_mat, int ISIZE, int JSIZE,
                             //float4 ivec((i * KSIZE + k) + A);
                             //float * iarr = (float *)(&ivec);
                             for(int jo = 0; jo < JTHREAD; jo++){
-                                int i = jo + it + ib;
-                                float ival = A[i*KSIZE+k];
+                                int io = jo;
+                                //int i = io + it + ib;
+                                float ival = ABuf[io][ko];//A[i*KSIZE+k];
                                 float4 ivalvec(ival);
                                 float4 mulval = jvec * ivalvec;
                                 res[jo] += mulval;

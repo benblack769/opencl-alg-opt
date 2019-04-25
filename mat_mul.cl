@@ -32,13 +32,27 @@ kernel void matmul(global float * A, global float * B, global float * res_mat){
     }
 
     for(int kg = 0; kg < KSIZE; kg += KGROUP){
+
+        private float ABuf[KTHREAD][ITHREAD];
+        for(int io = 0; io < ITHREAD; io++){
+            int i = io + it + ib;
+            for(int ko = 0; ko < KTHREAD; ko += VSIZE){
+                int k = ko + kt + kg;
+                //float4 data = vload4((i * KSIZE + k)/VSIZE, A);
+                //float * darr = (float *)(&data);
+                for(int x = 0; x < VSIZE; x++){
+                    ABuf[ko+x][io] = A[i*KSIZE+k+x];//darr[x];
+                }
+            }
+        }
+
         for(int ko = 0; ko < KTHREAD; ko++){
             int k = ko + kt + kg;
             int j = jb + jt;
             float4 jvec = vload4((k * JSIZE + j)/VSIZE, B);
             for(int jo = 0; jo < JTHREAD; jo++){
                 int i = jo + it + ib;
-                float ival = A[i*KSIZE+k];
+                float ival = ABuf[ko][jo];//A[i*KSIZE+k];
                 res[jo] += jvec * ival;
             }
         }

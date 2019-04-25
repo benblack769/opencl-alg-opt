@@ -58,7 +58,7 @@ void test_matmul_gpu_impl(){
     int jsize = 512;
     int ksize = 512;
     int igs = 4;
-    int jgs = 4;
+    int jgs = 8;
     int kgs = 1;
     int ithread = 4;
     int jthread = 4;
